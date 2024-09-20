@@ -1,0 +1,187 @@
+#include "HX711.h"
+const int LOADCELL_DOUT_PIN = 2;
+const int LOADCELL_SCK_PIN = 3;
+HX711 scale;
+
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+#define plus A2
+#define minus A1
+#define enter A0
+
+const int motorPin1  = 5;
+const int motorPin2  = 6;
+const int motorPin3  = 7;
+const int motorPin4  = 8;
+const int motorPin5  = 9;
+const int motorPin6  = 10;
+const int motorPin7  = 11;
+const int motorPin8  = 12;
+
+int IR = 13;
+int count1 = 0;
+int count2 = 0;
+int detect1 = HIGH;
+int detect2 = LOW;
+int detect3 = LOW;
+int detect4 = LOW;
+
+void setup()
+{
+  lcd.begin();
+  pinMode(motorPin1, OUTPUT);
+  pinMode(motorPin2, OUTPUT);
+  pinMode(motorPin3, OUTPUT);
+  pinMode(motorPin4, OUTPUT);
+  pinMode(motorPin5, OUTPUT);
+  pinMode(motorPin6, OUTPUT);
+  pinMode(motorPin7, OUTPUT);
+  pinMode(motorPin8, OUTPUT);
+  pinMode(IR,INPUT);
+  pinMode(plus,INPUT);
+  pinMode(minus,INPUT);
+  pinMode(enter,INPUT);
+  Serial.begin(9600);
+  delay(100);
+ 
+  Serial.println("Product Weight ");
+  Serial.println("Measuring...");
+  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+  scale.set_scale(2280.f);
+  scale.tare();
+  lcd.backlight();
+  lcd.print("Product Weight");
+  delay(1000);
+  lcd.clear();
+ 
+}
+
+
+void loop()
+{
+  detect1 = digitalRead(IR);
+  detect2 = digitalRead(plus);
+  detect3 = digitalRead(minus);
+  detect4 = digitalRead(enter);
+
+  Serial.print("one reading:\t");
+  Serial.print(scale.get_units(), 1);
+  Serial.print("\t| average:\t");
+  Serial.println(scale.get_units(10), 1);
+
+  scale.power_down();      
+  delay(100);
+  scale.power_up();
+
+  if (detect1 == LOW) {   
+    if(count1 < 10)
+      count1++;
+    else
+      count1 = 0;
+  lcd.backlight();
+  lcd.print("COUNTER =");
+  delay(500);
+  lcd.clear();
+  lcd.print(count1);
+  delay(500);
+  lcd.clear();
+  }
+ 
+
+  if (detect2 == HIGH) {
+    if(count2 < 10)
+      count2++;
+    else
+      count2 = 0;
+  lcd.backlight();
+  lcd.print("Set Count");
+  delay(500);
+  lcd.clear();
+  lcd.print(count2);
+  delay(500);
+  lcd.clear();
+  }
+ 
+
+  if (detect3 == HIGH) {      
+    if(count2 < 10)
+      count2--;
+    else
+      count2 = 0;
+   lcd.backlight();
+  lcd.print("Set Count");
+  delay(500);
+  lcd.clear();
+  lcd.print(count2);
+  delay(500);
+  lcd.clear();
+  }
+ 
+
+  if (detect4 == HIGH){
+
+  if (count2 > count1){
+    digitalWrite(motorPin1,HIGH);
+    digitalWrite(motorPin2,HIGH);
+    digitalWrite(motorPin3,HIGH);
+    digitalWrite(motorPin4,HIGH);
+    lcd.backlight();
+    lcd.print(" Counting =");
+    delay(500);
+    lcd.clear();
+    lcd.print(count1);
+    delay(500);
+    lcd.clear();  
+  }
+
+  else if (count2 <= count1){
+    digitalWrite(motorPin1,LOW);
+    digitalWrite(motorPin2,LOW);
+    digitalWrite(motorPin3,LOW);
+    digitalWrite(motorPin4,LOW);
+  lcd.backlight();
+  lcd.print("Count Completed");
+  delay(500);
+  lcd.clear();
+  lcd.print(count1);
+  delay(500);
+  lcd.clear();   
+  }
+  }
+
+  else {
+    digitalWrite(motorPin1,LOW);
+    digitalWrite(motorPin2,LOW);
+    digitalWrite(motorPin3,LOW);
+    digitalWrite(motorPin4,LOW);   
+  }
+
+if (scale.get_units() > 1200 || scale.get_units() < 800)
+  {
+    digitalWrite(motorPin4,LOW);
+    digitalWrite(motorPin5,LOW);
+   
+    digitalWrite(motorPin6,HIGH);
+    digitalWrite(motorPin7,LOW);
+    delay(1000);
+    digitalWrite(motorPin6,LOW);
+    digitalWrite(motorPin7,HIGH);
+    delay(1000);
+  lcd.backlight();
+  lcd.print(" Weight Unmatched");
+  delay(500);
+  lcd.clear();
+  lcd.print("Rejecting");
+  delay(500);
+  lcd.clear();
+}
+
+else {
+    digitalWrite(motorPin6,HIGH);
+    digitalWrite(motorPin7,LOW);
+    digitalWrite(motorPin6,LOW);
+    digitalWrite(motorPin7,LOW);
+}
+}
